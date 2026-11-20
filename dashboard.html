@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antigravity Lite Meter</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-elev: #f5f7fa;
+      --bg-soft: rgba(0, 0, 0, 0.045);
+      --border: rgba(0, 0, 0, 0.10);
+      --text: #1c2026;
+      --muted: #5d6675;
+      --accent: #2563eb;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+      --heat-0: rgba(0, 0, 0, 0.06);
+      --heat-1: #c6e48b;
+      --heat-2: #7bc96f;
+      --heat-3: #239a3b;
+      --heat-4: #196127;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1b1d22;
+        --bg-elev: #23262e;
+        --bg-soft: rgba(255, 255, 255, 0.055);
+        --border: rgba(255, 255, 255, 0.11);
+        --text: #e6e8ee;
+        --muted: #9aa0ae;
+        --accent: #4c9aff;
+        --green: #38c172;
+        --amber: #f59e0b;
+        --red: #ef4444;
+        --heat-0: rgba(255, 255, 255, 0.06);
+        --heat-1: #144620;
+        --heat-2: #1f6f35;
+        --heat-3: #2ea043;
+        --heat-4: #56d364;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+      font-size: 12px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app {
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 12px 14px 14px;
+    }
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tabs {
+      display: inline-flex;
+      background: var(--bg-soft);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .tab {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 5px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .tab.active {
+      background: var(--bg-elev);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+    }
+    .head-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-safe {
+      font-size: 10px;
+      color: var(--green);
+      background: rgba(56, 193, 114, 0.13);
+      border: 1px solid rgba(56, 193, 114, 0.28);
+      padding: 2px 6px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      color: var(--text);
+      border-radius: 6px;
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .big-num {
+      font-size: 19px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+    }
+    .muted { color: var(--muted); font-size: 11px; }
+    select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 6px;
+      font-size: 11px;
+      max-width: 100%;
+    }
+    .session-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .session-bar select { flex: 1; min-width: 0; }
+    .progress-track {
+      margin: 9px 0 7px;
+      height: 8px;
+      width: 100%;
+      border-radius: 999px;
+      background: rgba(128, 128, 128, 0.2);
+      overflow: hidden;
+      display: flex;
+    }
+    .prog-cache { background: var(--accent); height: 100%; transition: width 0.25s; }
+    .prog-input { background: var(--green); height: 100%; transition: width 0.25s; }
+    .prog-input.warn { background: var(--amber); }
+    .prog-input.danger { background: var(--red); }
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .legend i {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .kpi {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .kpi-val { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .list { display: flex; flex-direction: column; gap: 5px; }
+    .turn-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      background: var(--bg-soft);
+      font-variant-numeric: tabular-nums;
+    }
+    .periods {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .period-btn {
+      flex: 1;
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      color: var(--muted);
+      border-radius: 7px;
+      padding: 5px 0;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .period-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    .heatmap-wrap {
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+    .heatmap-grid {
+      display: grid;
+      grid-template-rows: repeat(7, 6px);
+      grid-auto-flow: column;
+      grid-auto-columns: 6px;
+      gap: 2px;
+      width: max-content;
+    }
+    .heat-cell {
+      width: 6px;
+      height: 6px;
+      border-radius: 1.5px;
+      background: var(--heat-0);
+    }
+    .heat-cell[data-l="1"] { background: var(--heat-1); }
+    .heat-cell[data-l="2"] { background: var(--heat-2); }
+    .heat-cell[data-l="3"] { background: var(--heat-3); }
+    .heat-cell[data-l="4"] { background: var(--heat-4); }
+    .model-row { margin-bottom: 8px; }
+    .model-bar-bg {
+      height: 5px;
+      background: rgba(128, 128, 128, 0.18);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .model-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+    .foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .link-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+    .link-btn:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="head">
+      <div class="tabs">
+        <button class="tab active" data-tab="session">当前会话</button>
+        <button class="tab" data-tab="history">历史 &amp; 热力图</button>
+      </div>
+      <div class="head-actions">
+        <span class="badge-safe" title="不修改官方客户端、零外网请求、零凭据接触">零改盘 · 纯只读</span>
+        <button class="btn" id="btn-refresh">刷新</button>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="muted" style="padding:24px;text-align:center;">正在读取本地 ~/.gemini/antigravity 日志...</div>
+    </div>
+
+    <div class="foot">
+      <span>Antigravity Lite Meter · 零外联 · API 费用仅供参考</span>
+      <span id="native-controls"></span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      const isMacNative = Boolean(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.meter);
+      const state = {
+        tab: 'session',
+        period: 'today',
+        displayWindow: Number(localStorage.getItem('ag_lite_win_v1')) || 256000,
+        selectedSessionId: '',
+        data: null
+      };
+
+      const contentEl = document.getElementById('content');
+      const nativeCtrlEl = document.getElementById('native-controls');
+
+      if (isMacNative) {
+        nativeCtrlEl.innerHTML = '<button class="link-btn" id="btn-compact">精简状态栏</button> · <button class="link-btn" id="btn-quit">退出</button>';
+        document.getElementById('btn-compact').addEventListener('click', () => postNative({ action: 'toggleCompact' }));
+        document.getElementById('btn-quit').addEventListener('click', () => postNative({ action: 'quit' }));
+      }
+
+      function postNative(msg) {
+        try {
+          if (isMacNative) window.webkit.messageHandlers.meter.postMessage(msg);
+        } catch {}
+      }
+
+      function fmtTokens(n) {
+        const v = Number(n) || 0;
+        if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+        if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+        if (v >= 1e4) return (v / 1e3).toFixed(1) + 'K';
+        if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+        return String(Math.round(v));
+      }
+
+      function fmtUsd(v) {
+        const n = Number(v) || 0;
+        if (n === 0) return '$0.00';
+        if (n < 0.01) return '<$0.01';
+        return '$' + n.toFixed(2);
+      }
+
+      function fmtTime(ts) {
+        if (!ts) return '--:--';
+        const d = new Date(ts);
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      }
+
+      function esc(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function getActiveSession() {
+        const d = state.data;
+        if (!d || !Array.isArray(d.sessions) || d.sessions.length === 0) return null;
+        if (state.selectedSessionId) {
+          const hit = d.sessions.find(s => s.cascadeId === state.selectedSessionId);
+          if (hit) return hit;
+        }
+        return d.sessions[0];
+      }
+
+      function renderSessionTab() {
+        const d = state.data;
+        const sessions = (d && Array.isArray(d.sessions)) ? d.sessions : [];
+        const active = getActiveSession();
+        const denom = state.displayWindow || 256000;
+        const used = active ? (active.contextTokens || 0) : 0;
+        const pct = denom > 0 ? Math.min(100, (used / denom) * 100) : 0;
+        const cachePct = denom > 0 && active ? Math.min(100, ((active.cacheReadTokens || 0) / denom) * 100) : 0;
+        const inputPct = denom > 0 && active ? Math.min(100 - cachePct, ((active.inputTokens || 0) / denom) * 100) : 0;
+        const warnCls = pct >= 85 ? 'danger' : pct >= 65 ? 'warn' : '';
+        const remaining = Math.max(0, denom - used);
+
+        const sessionOptions = sessions.length > 0
+          ? sessions.map((s, idx) => {
+              const sel = active && s.cascadeId === active.cascadeId ? ' selected' : '';
+              const prefix = idx === 0 ? '[最新] ' : '';
+              const label = `${prefix}${fmtTime(s.lastTs)} · ${s.modelLabel || '模型'} · ${fmtTokens(s.contextTokens)} (${s.cascadeId.slice(0, 8)})`;
+              return `<option value="${esc(s.cascadeId)}"${sel}>${esc(label)}</option>`;
+            }).join('')
+          : '<option value="">暂未检测到会话日志</option>';
+
+        const winOptions = [
+          { v: 256000, l: '256K (默认)' },
+          { v: 512000, l: '512K' },
+          { v: 1000000, l: '1M' }
+        ].map(o => `<option value="${o.v}"${o.v === denom ? ' selected' : ''}>${o.l}</option>`).join('');
+
+        const turns = (active && Array.isArray(active.recentTurns)) ? active.recentTurns : [];
+        const turnsHtml = turns.length > 0
+          ? turns.slice(0, 8).map(t => `
+              <div class="turn-item">
+                <span>${fmtTime(t.ts)} · ${esc(t.modelLabel || '模型')}</span>
+                <span>上下文 ${fmtTokens(t.contextTokens)} · 出 ${fmtTokens(t.outputTokens)} · ${fmtUsd(t.costUsd)}</span>
+              </div>
+            `).join('')
+          : '<div class="muted" style="padding:10px 0;text-align:center;">在 Antigravity 中发送消息后，此处将自动显示上下文占用</div>';
+
+        contentEl.innerHTML = `
+          <div class="session-bar">
+            <select id="sel-session" title="切换查看最近活跃会话">${sessionOptions}</select>
+            <select id="sel-window" title="仅调整显示分母，不修改任何客户端文件">${winOptions}</select>
+          </div>
+
+          <div class="card">
+            <div class="row">
+              <div>
+                <div class="muted">当前会话上下文占用 · ${esc((active && active.modelLabel) || '等待数据')}</div>
+                <div class="big-num">${fmtTokens(used)} <span class="muted">/ ${fmtTokens(denom)} (${pct.toFixed(1)}%)</span></div>
+              </div>
+            </div>
+            <div class="progress-track">
+              <div class="prog-cache" style="width:${cachePct.toFixed(2)}%"></div>
+              <div class="prog-input ${warnCls}" style="width:${inputPct.toFixed(2)}%"></div>
+            </div>
+            <div class="legend">
+              <span><i style="background:var(--accent)"></i>缓存命中 ${fmtTokens(active ? active.cacheReadTokens : 0)}</span>
+              <span><i style="background:var(--green)"></i>新增输入 ${fmtTokens(active ? active.inputTokens : 0)}</span>
+              <span>剩余 ${fmtTokens(remaining)}</span>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="kpi">
+              <div class="kpi-label">本轮缓存命中率</div>
+              <div class="kpi-val">${active ? active.cacheHitRate + '%' : '--'}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">本轮输出 / 思考</div>
+              <div class="kpi-val">${active ? fmtTokens(active.outputTokens) : '--'} <span class="muted">/ ${active ? fmtTokens(active.thinkingTokens) : '--'}</span></div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">会话累计 (${active ? active.turnCount : 0} 轮)</div>
+              <div class="kpi-val">${active ? fmtTokens(active.totalTokens) : '--'}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">会话参考 API 费用</div>
+              <div class="kpi-val">${active ? fmtUsd(active.estimatedCostUsd) : '$0.00'}</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:0;">
+            <div class="row" style="margin-bottom:6px;">
+              <span style="font-weight:600;">最近调用明细</span>
+              <span class="muted">${active ? active.cascadeId.slice(0, 8) : '--'}</span>
+            </div>
+            <div class="list">${turnsHtml}</div>
+          </div>
+        `;
+
+        const selSess = document.getElementById('sel-session');
+        if (selSess) {
+          selSess.addEventListener('change', () => {
+            state.selectedSessionId = selSess.value;
+            postNative({ action: 'selectSession', cascadeId: selSess.value });
+            render();
+          });
+        }
+        const selWin = document.getElementById('sel-window');
+        if (selWin) {
+          selWin.addEventListener('change', () => {
+            state.displayWindow = Number(selWin.value) || 256000;
+            try { localStorage.setItem('ag_lite_win_v1', String(state.displayWindow)); } catch {}
+            postNative({ action: 'setWindow', displayWindow: state.displayWindow });
+            render();
+          });
+        }
+      }
+
+      function renderHistoryTab() {
+        const d = state.data;
+        if (!d || !d.periods) {
+          contentEl.innerHTML = '<div class="muted" style="padding:20px;text-align:center;">正在扫描本地历史日志...</div>';
+          return;
+        }
+        const p = d.periods[state.period] || d.periods.today;
+        const periodBtns = [
+          { id: 'today', l: '今日' },
+          { id: 'week', l: '近 7 天' },
+          { id: 'month', l: '近 30 天' },
+          { id: 'all', l: '全部' }
+        ].map(b => `<button class="period-btn${b.id === state.period ? ' active' : ''}" data-p="${b.id}">${b.l}</button>`).join('');
+
+        const heatDays = (d.heatmap && d.heatmap.days) || [];
+        const heatCells = heatDays.map(day =>
+          `<div class="heat-cell" data-l="${day.level}" title="${day.date}: ${fmtTokens(day.tokens)} tokens (${day.calls} 次调用)"></div>`
+        ).join('');
+
+        const models = p.models || [];
+        const maxTok = models.length > 0 ? Math.max(1, models[0].totalTokens) : 1;
+        const modelsHtml = models.length > 0
+          ? models.slice(0, 8).map(m => {
+              const w = Math.max(3, Math.round((m.totalTokens / maxTok) * 100));
+              return `
+                <div class="model-row">
+                  <div class="row">
+                    <span>${esc(m.modelLabel)} <span class="muted">(${m.calls}次)</span></span>
+                    <span><b>${fmtTokens(m.totalTokens)}</b> · ${fmtUsd(m.estimatedCostUsd)}</span>
+                  </div>
+                  <div class="muted">输入 ${fmtTokens(m.inputTokens)} · 缓存 ${fmtTokens(m.cacheReadTokens)} · 输出 ${fmtTokens(m.outputTokens)}</div>
+                  <div class="model-bar-bg"><div class="model-bar-fill" style="width:${w}%"></div></div>
+                </div>
+              `;
+            }).join('')
+          : '<div class="muted" style="padding:8px 0;text-align:center;">该周期内暂无 Token 记录</div>';
+
+        const totalFiles = (d.sources ? (d.sources.desktopFiles + d.sources.cliFiles) : 0);
+
+        contentEl.innerHTML = `
+          <div class="periods">${periodBtns}</div>
+
+          <div class="grid-2">
+            <div class="kpi">
+              <div class="kpi-label">周期总 Token</div>
+              <div class="kpi-val">${fmtTokens(p.totalTokens)}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">参考 API 费用</div>
+              <div class="kpi-val">${fmtUsd(p.estimatedCostUsd)}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">输入 / 缓存 / 输出</div>
+              <div class="kpi-val" style="font-size:12px;">${fmtTokens(p.inputTokens)} / ${fmtTokens(p.cacheReadTokens)} / ${fmtTokens(p.outputTokens)}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">调用 / 会话 / 缓存率</div>
+              <div class="kpi-val" style="font-size:12px;">${p.calls} 次 / ${p.sessions} 会话 / ${p.cacheHitRate}%</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row" style="margin-bottom:6px;">
+              <span style="font-weight:600;">52 周活跃热力图</span>
+              <span class="muted">活跃 ${d.heatmap.activeDays} 天 · 连续 ${d.heatmap.currentStreak} 天</span>
+            </div>
+            <div class="heatmap-wrap"><div class="heatmap-grid">${heatCells}</div></div>
+          </div>
+
+          <div class="card" style="margin-bottom:0;">
+            <div class="row" style="margin-bottom:8px;">
+              <span style="font-weight:600;">模型用量分布</span>
+              <span class="muted">已扫描 ${totalFiles} 份本地日志</span>
+            </div>
+            ${modelsHtml}
+          </div>
+        `;
+
+        contentEl.querySelectorAll('.period-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            state.period = btn.getAttribute('data-p') || 'today';
+            render();
+          });
+        });
+      }
+
+      function render() {
+        document.querySelectorAll('.tab').forEach(t => {
+          t.classList.toggle('active', t.getAttribute('data-tab') === state.tab);
+        });
+        if (state.tab === 'history') renderHistoryTab();
+        else renderSessionTab();
+      }
+
+      window.__onMeterData = function (payload) {
+        if (!payload || typeof payload !== 'object') return;
+        state.data = payload;
+        if (payload.displayWindow && Number(payload.displayWindow) > 0) {
+          state.displayWindow = Number(payload.displayWindow);
+        }
+        if (payload.selectedSessionId !== undefined && payload.selectedSessionId !== null) {
+          state.selectedSessionId = String(payload.selectedSessionId);
+        }
+        render();
+      };
+
+      async function fetchLocalWebData() {
+        if (isMacNative) {
+          postNative({ action: 'refresh' });
+          return;
+        }
+        try {
+          const resp = await fetch('/api/data', { cache: 'no-store' });
+          if (!resp.ok) return;
+          const json = await resp.json();
+          window.__onMeterData(json);
+        } catch {}
+      }
+
+      document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => {
+          state.tab = t.getAttribute('data-tab') || 'session';
+          render();
+        });
+      });
+      document.getElementById('btn-refresh').addEventListener('click', () => {
+        void fetchLocalWebData();
+      });
+
+      if (!isMacNative) {
+        void fetchLocalWebData();
+        setInterval(() => {
+          if (!document.hidden) void fetchLocalWebData();
+        }, 4000);
+      } else {
+        postNative({ action: 'ready' });
+      }
+    })();
+  </script>
+</body>
+</html>
